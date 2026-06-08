@@ -1,6 +1,8 @@
 package servidor_cliente;
 
 import Controlador.GestorUsuarios; // Importamos el gestor que creaste
+import Modelo.Sala;
+import Modelo.Usuario;
 import MySQL.ConexionBaseDeDatos;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -89,10 +91,19 @@ public class ManejadorDeUsuarios extends Thread {
                             guardarSalaNuevobd(partes);
                             escritor.println("GUARDADO_OK");
 
+                            Sala salaNueva = new Sala(codigoSala, nombreSala, true, cantidadJugadores);
+
+                            Servidor.juego.getArrayDeSalas().add(salaNueva);
+
+                            System.out.println("Sala agregada al servidor: " + nombreSala);
+
+                            escritor.println("GUARDADO_OK");
+
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                         break;
+
                     case "PRESENTAR":
                         try {
 
@@ -144,6 +155,25 @@ public class ManejadorDeUsuarios extends Thread {
                         } catch (Exception e) {
                             System.out.println("Error al consultar salas en el servidor: " + e.getMessage());
                             escritor.println("RESPUESTA_SALAS|VACIO");
+                        }
+                        break;
+                    case "UNIR_SALA":
+
+                        int codigoSala = Integer.parseInt(partes[1]);
+
+                        String nombreJugador = partes[2];
+
+                        Sala sala = Servidor.juego.buscarSala(codigoSala);
+
+                        if (sala != null) {
+
+                            Usuario jugador = new Usuario(0, nombreJugador, "", "", 0);
+
+                            sala.agregarJugador(jugador);
+
+                            escritor.println("OK");
+                        } else {
+                            escritor.println("ERROR");
                         }
                         break;
                 }
