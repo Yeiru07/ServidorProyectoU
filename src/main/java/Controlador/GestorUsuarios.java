@@ -95,6 +95,31 @@ public class GestorUsuarios {
         return listaSalas;
     }
 
+    public Sala buscarSalaPorCodigo(int codigoSala) {
+        String sql = "SELECT * FROM sala WHERE codigoSala = ?";
+
+        try (
+                Connection conexion = ConexionBaseDeDatos.conectar(); PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, codigoSala);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return new Sala(
+                        rs.getInt("codigoSala"),
+                        rs.getString("nombreSala"),
+                        rs.getBoolean("estado"),
+                        rs.getInt("cantidadJugadore")
+                );
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     // 4. MÉTODOS PARA CONTROLAR LOGUEADOS EN VIVO (Para las salas del juego)
     public void agregarUsuarioActivo(Usuario usuario) {
         usuariosConectados.add(usuario);

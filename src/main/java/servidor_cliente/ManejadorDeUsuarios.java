@@ -165,8 +165,8 @@ public class ManejadorDeUsuarios extends Thread {
                         System.out.println("Codigo: " + codigoSala);
                         System.out.println("Jugador: " + nombreJugador);
 
-                        Sala sala = Servidor.juego.buscarSala(codigoSala);
-
+                        Sala sala = gestor.buscarSalaPorCodigo(codigoSala);
+                        
                         //ESTO ES UNICAMENTE PARA LAS PRUEBAS DE FLUJO Y VER SI LLEGA ALGO//
                         System.out.println("Cantidad de salas en memoria: "
                                 + Servidor.juego.getArrayDeSalas().size());
