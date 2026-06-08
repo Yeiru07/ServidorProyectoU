@@ -158,10 +158,12 @@ public class ManejadorDeUsuarios extends Thread {
                         }
                         break;
                     case "UNIR_SALA":
-
                         int codigoSala = Integer.parseInt(partes[1]);
-
                         String nombreJugador = partes[2];
+                        System.out.println("LLEGO PETICION DE UNIR SALA");
+                        System.out.println("======== UNIR SALA ========");
+                        System.out.println("Codigo: " + codigoSala);
+                        System.out.println("Jugador: " + nombreJugador);
 
                         Sala sala = Servidor.juego.buscarSala(codigoSala);
 
