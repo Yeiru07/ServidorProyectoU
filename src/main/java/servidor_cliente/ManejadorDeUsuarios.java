@@ -167,6 +167,31 @@ public class ManejadorDeUsuarios extends Thread {
 
                         Sala sala = Servidor.juego.buscarSala(codigoSala);
 
+                        //ESTO ES UNICAMENTE PARA LAS PRUEBAS DE FLUJO Y VER SI LLEGA ALGO//
+                        System.out.println("Cantidad de salas en memoria: "
+                                + Servidor.juego.getArrayDeSalas().size());
+
+                        for (Sala s : Servidor.juego.getArrayDeSalas()) {
+                            System.out.println(
+                                    "Sala encontrada en memoria -> Codigo: "
+                                    + s.getCodigoSala()
+                                    + " Nombre: "
+                                    + s.getNombreSala()
+                            );
+                        }
+                        if (sala == null) {
+                            System.out.println("NO SE ENCONTRO LA SALA");
+                            escritor.println("ERROR");
+                        } else {
+                            System.out.println("SI SE ENCONTRO LA SALA");
+
+                            Usuario jugador = new Usuario(0, nombreJugador, "", "", 0);
+                            sala.agregarJugador(jugador);
+
+                            escritor.println("OK");
+                        }
+                        /////////////////////////////////////////////////////////////////////
+
                         if (sala != null) {
 
                             Usuario jugador = new Usuario(0, nombreJugador, "", "", 0);
