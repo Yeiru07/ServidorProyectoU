@@ -25,15 +25,16 @@ public class ManejadorDeUsuarios extends Thread {
         try {
             BufferedReader lector = new BufferedReader(new InputStreamReader(socketCliente.getInputStream()));
             PrintWriter escritor = new PrintWriter(socketCliente.getOutputStream(), true);
+            Servidor.clientes.add(escritor);//Se traen todos los usuarios conectados
 
+            System.out.println("CLIENTE AGREGADO. TOTAL = " + Servidor.clientes.size());
             String datosRecibidos;
             while ((datosRecibidos = lector.readLine()) != null) {
                 System.out.println("TRAMA RECIBIDA EN EL SERVIDOR: " + datosRecibidos);
-
                 String[] partes = datosRecibidos.split("\\|", -1);
                 String comando = partes[0]; // Primer elemento antes del primer "|"
 
-                // Evaluamos qué quiere hacer el cliente usando un bloque switch básico
+                // Evaluamos que quiere hacer el cliente usando un bloque switch básico
                 switch (comando) {
 
                     case "REGISTRO":
@@ -125,14 +126,9 @@ public class ManejadorDeUsuarios extends Thread {
 
                                 if (!existe) {
                                     Servidor.juego.getArrayDeSalas().add(sala);
-
-                                    System.out.println(
-                                            "Sala cargada a memoria: "
-                                            + sala.getCodigoSala()
-                                    );
+                                    System.out.println("Sala cargada a memoria: " + sala.getCodigoSala());
                                 }
                             }
-
                             escritor.println("OK|Sala presentada");
                         } catch (Exception e) {
 
@@ -144,16 +140,15 @@ public class ManejadorDeUsuarios extends Thread {
                     default:
                         escritor.println("ERROR|Comando no reconocido por el servidor");
                         break;
-                    // AGREGAR ESTO DENTRO DEL SWITCH EN ManejadorDeUsuarios.java
                     case "CONSULTAR_SALAS":
                         try {
                             String nombreUsuario = partes[1];
                             System.out.println("Servidor consultando salas para: " + nombreUsuario);
 
-                            // 1. Usamos el método que ya creaste en tu GestorUsuarios para llamar al Procedure de MySQL
+                            //Con esto llamamos en procedimiento almacenado del gestor
                             java.util.ArrayList<Modelo.Sala> lista = gestor.consultarSalasDeUsuario(nombreUsuario);
 
-                            // 2. Construimos la respuesta en texto plano para el cliente
+                            //Construimos la respuesta en texto plano para el cliente
                             StringBuilder respuesta = new StringBuilder("RESPUESTA_SALAS|");
                             if (lista.isEmpty()) {
                                 respuesta.append("VACIO");
@@ -170,9 +165,9 @@ public class ManejadorDeUsuarios extends Thread {
                                 }
                             }
 
-                            // 3. Enviamos de vuelta al cliente
+                            //Enviamos de vuelta al cliente
                             escritor.println(respuesta.toString());
-                            /*ESTO HACE QUE EL PROGRAMA SE CAIGA Y NO FUNCIONE*/// Servidor.enviarATodos(respuesta.toString());
+                            /*ESTO HACE QUE EL PROGRAMA SE CAIGA Y NO FUNCIONE Servidor.enviarATodos(respuesta.toString());*/
                             System.out.println("Servidor envió: " + respuesta.toString());
 
                         } catch (Exception e) {
@@ -190,26 +185,36 @@ public class ManejadorDeUsuarios extends Thread {
 
                         Sala sala = gestor.buscarSalaMemoria(codigoSala);
 
-                        //ESTO ES UNICAMENTE PARA LAS PRUEBAS DE FLUJO Y VER SI LLEGA ALGO//
-                        System.out.println("Cantidad de salas en memoria: "
-                                + Servidor.juego.getArrayDeSalas().size());
+                        //ESTO ES UNICAMENTE PARA LAS PRUEBAS DE FLUJO Y VER SI LLEGA ALGO
+                        System.out.println("Cantidad de salas en memoria: " + Servidor.juego.getArrayDeSalas().size());
 
                         for (Sala s : Servidor.juego.getArrayDeSalas()) {
-                            System.out.println(
-                                    "Sala encontrada en memoria -> Codigo: "
+                            System.out.println("Sala encontrada en memoria -> Codigo: "
                                     + s.getCodigoSala()
                                     + " Nombre: "
                                     + s.getNombreSala()
                             );
                         }
+
                         if (sala == null) {
                             System.out.println("NO SE ENCONTRO LA SALA");
                             escritor.println("ERROR");
                         } else {
                             System.out.println("SI SE ENCONTRO LA SALA");
 
-                            Usuario jugador = new Usuario(0, nombreJugador, "", "", 0);
-                            sala.agregarJugador(jugador);
+                            boolean existe = false;
+
+                            /*En esta seccion se valida que el jugadar ya haya entrado a la sala, asi su nombre no se repite*/
+                            for (Usuario u : sala.getArrayDeUsuarios()) {
+                                if (u.getNombreUsuario().equalsIgnoreCase(nombreJugador)) {
+                                    existe = true;
+                                    break;
+                                }
+                            }
+                            if (!existe) {
+                                Usuario jugador = new Usuario(0, nombreJugador, "", "", 0);
+                                sala.agregarJugador(jugador);
+                            }
 
                             StringBuilder respuesta = new StringBuilder("JUGADORES|");
 
@@ -224,26 +229,19 @@ public class ManejadorDeUsuarios extends Thread {
                                 }
                             }
                             escritor.println(respuesta.toString());
+                            System.out.println("CLIENTES CONECTADOS: " + Servidor.clientes.size());
                             Servidor.enviarATodos(respuesta.toString());
-                            //////////
                             System.out.println("Jugadores actuales:");
 
                             for (Usuario u : sala.getArrayDeUsuarios()) {
                                 System.out.println("- " + u.getNombreUsuario());
                             }
-                            //////////
-
-                            // escritor.println("OK");
                         }
-                    /////////////////////////////////////////////////////////////////////
-
                 }
             }
-
         } catch (Exception e) {
             System.out.println("El cliente se desconectó o hubo un error: " + e.getMessage());
         } finally {
-            // Nos aseguramos de liberar el socket si el ciclo termina
             try {
                 if (socketCliente != null) {
                     socketCliente.close();
@@ -254,7 +252,7 @@ public class ManejadorDeUsuarios extends Thread {
         }
     }
 
-// Tu método original para insertar preguntas de examen
+    //Metodo original para insertar preguntas
     private void guardarPreguntaNuevobd(String[] partes) throws Exception {
         java.sql.Connection conexion = ConexionBaseDeDatos.conectar();
         String sql = "INSERT INTO preguntas (enunciado, respuesta1, respuesta2, respuesta3, respuesta4, codigoSala) VALUES (?, ?, ?, ?, ?, ?)";
@@ -314,7 +312,6 @@ public class ManejadorDeUsuarios extends Thread {
             } else {
                 System.out.println("No existe la sala " + codigoSala);
             }
-
         } finally {
             conexion.close();
         }

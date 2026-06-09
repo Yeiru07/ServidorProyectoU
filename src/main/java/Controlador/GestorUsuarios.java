@@ -9,21 +9,21 @@ package Controlador;
  * @author sronn
  */
 import Modelo.Usuario;
-import Modelo.Sala; // IMPORTANTE: Asegúrate de importar tu modelo Sala
+import Modelo.Sala;
 import MySQL.ConexionBaseDeDatos;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.CallableStatement; // Agregado para el procedimiento almacenado
+import java.sql.CallableStatement;// Agregado para el procedimiento almacenado
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import servidor_cliente.Servidor;
 
 public class GestorUsuarios {
 
-    // Lista en memoria para saber quiénes están jugando/conectados actualmente
+    // Lista en memoria para saber quienes estan jugando/conectados actualmente
     private ArrayList<Usuario> usuariosConectados = new ArrayList<>();
 
-    // 1. MÉTODO PARA INSERTAR EN LA BASE DE DATOS
+    //MÉTODO PARA REGISTRAR USUARIO EN LA BASE DE DATOS
     public boolean registrarUsuarioEnBD(String nombre, String correo, String contra) {
         String sql = "INSERT INTO usuarios (nombreUsuario, correo, contraseña, puntuajeAcumulado) VALUES (?, ?, ?, 0.0)";
 
@@ -42,7 +42,7 @@ public class GestorUsuarios {
         }
     }
 
-    // 2. MÉTODO PARA VERIFICAR LOGIN EN LA BASE DE DATOS
+    //MÉTODO PARA VERIFICAR LOGIN EN LA BASE DE DATOS
     public boolean verificarLoginEnBD(String nombre, String contra) {
         String sql = "SELECT * FROM usuarios WHERE nombreUsuario = ? AND contraseña = ?";
 
@@ -61,13 +61,11 @@ public class GestorUsuarios {
         }
     }
 
-    // =========================================================================
-    // 🗄️ NUEVO: MÉTODO PARA LLAMAR AL PROCEDIMIENTO ALMACENADO CON INNER JOIN
-    // =========================================================================
+    //MÉTODO PARA LLAMAR AL PROCEDIMIENTO ALMACENADO CON INNER JOIN
     public ArrayList<Sala> consultarSalasDeUsuario(String nombreUsuario) {
         ArrayList<Sala> listaSalas = new ArrayList<>();
 
-        // Sintaxis nativa JDBC para invocar procedimientos de la BD: {call Nombre(?)}
+        //Se llama el procedimiento almacenado
         String sql = "{call ObtenerSalasDeUsuario(?)}";
 
         try (Connection conexion = ConexionBaseDeDatos.conectar(); CallableStatement cs = conexion.prepareCall(sql)) {
@@ -79,16 +77,12 @@ public class GestorUsuarios {
                 while (rs.next()) {
                     int codigo = rs.getInt("codigoSala");
                     String nombre = rs.getString("nombreSala");
-                    // Usamos 'cantidadJugadore' en singular para coincidir con tu esquema
                     int jugadores = rs.getInt("cantidadJugadore");
-
                     // Reconstruimos la instancia del modelo Sala en memoria.
-                    // Ajusta el constructor si tu clase Sala pide parámetros diferentes.
                     Sala sala = new Sala(codigo, nombre, true, jugadores);
                     listaSalas.add(sala);
                 }
             }
-
         } catch (Exception e) {
             System.out.println("Error SQL al ejecutar el procedimiento ObtenerSalasDeUsuario: " + e.getMessage());
         }
@@ -98,7 +92,6 @@ public class GestorUsuarios {
 
     public Sala buscarSalaPorCodigo(int codigoSala) {
         String sql = "SELECT * FROM sala WHERE codigoSala = ?";
-
         try (
                 Connection conexion = ConexionBaseDeDatos.conectar(); PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setInt(1, codigoSala);
@@ -122,18 +115,11 @@ public class GestorUsuarios {
     }
 
     public Sala buscarSalaMemoria(int codigoSala) {
-        System.out.println(
-                "Buscando sala: " + codigoSala
-        );
 
         for (Sala s : Servidor.juego.getArrayDeSalas()) {
-            System.out.println(
-                    "Sala en memoria -> "
-                    + s.getCodigoSala()
-            );
+            System.out.println("Sala en memoria =" + s.getCodigoSala());
         }
         for (Sala sala : Servidor.juego.getArrayDeSalas()) {
-
             if (sala.getCodigoSala() == codigoSala) {
                 return sala;
             }
