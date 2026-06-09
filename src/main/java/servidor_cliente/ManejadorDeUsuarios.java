@@ -133,7 +133,7 @@ public class ManejadorDeUsuarios extends Thread {
                                 }
                             }
 
-                             escritor.println("OK|Sala presentada");
+                            escritor.println("OK|Sala presentada");
                         } catch (Exception e) {
 
                             escritor.println("ERROR|No se pudo presentar la sala");
@@ -224,6 +224,7 @@ public class ManejadorDeUsuarios extends Thread {
                                 }
                             }
                             escritor.println(respuesta.toString());
+                            Servidor.enviarATodos(respuesta.toString());
                             //////////
                             System.out.println("Jugadores actuales:");
 
@@ -232,7 +233,7 @@ public class ManejadorDeUsuarios extends Thread {
                             }
                             //////////
 
-                           // escritor.println("OK");
+                            // escritor.println("OK");
                         }
                     /////////////////////////////////////////////////////////////////////
 

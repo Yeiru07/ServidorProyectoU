@@ -14,7 +14,13 @@ public class Servidor {
 
     public static void enviarATodos(String mensaje) {
 
+        System.out.println("CLIENTES CONECTADOS: "
+                + clientes.size());
+
         for (PrintWriter cliente : clientes) {
+
+            System.out.println("ENVIANDO: " + mensaje);
+
             cliente.println(mensaje);
         }
     }
