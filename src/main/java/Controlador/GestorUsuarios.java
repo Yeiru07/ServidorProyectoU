@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.CallableStatement; // Agregado para el procedimiento almacenado
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import servidor_cliente.Servidor;
 
 public class GestorUsuarios {
 
@@ -115,6 +116,27 @@ public class GestorUsuarios {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public Sala buscarSalaMemoria(int codigoSala) {
+        System.out.println(
+                "Buscando sala: " + codigoSala
+        );
+
+        for (Sala s : Servidor.juego.getArrayDeSalas()) {
+            System.out.println(
+                    "Sala en memoria -> "
+                    + s.getCodigoSala()
+            );
+        }
+        for (Sala sala : Servidor.juego.getArrayDeSalas()) {
+
+            if (sala.getCodigoSala() == codigoSala) {
+                return sala;
+            }
         }
 
         return null;

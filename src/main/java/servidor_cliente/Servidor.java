@@ -1,13 +1,23 @@
 package servidor_cliente;
 
 import Modelo.Juego;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class Servidor {
 
     private static final int PUERTO = 5000;//TOMO EL PUERTO
     public static Juego juego = new Juego();
+    public static ArrayList<PrintWriter> clientes = new ArrayList<>();
+
+    public static void enviarATodos(String mensaje) {
+
+        for (PrintWriter cliente : clientes) {
+            cliente.println(mensaje);
+        }
+    }
 
     public static void main(String[] args) {
 

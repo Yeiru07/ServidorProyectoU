@@ -110,8 +110,30 @@ public class ManejadorDeUsuarios extends Thread {
                             int codigoSala = Integer.parseInt(partes[1]);
 
                             presentarSala(codigoSala);
+                            Sala sala = gestor.buscarSalaPorCodigo(codigoSala);
 
-                            //  escritor.println("OK|Sala presentada");
+                            if (sala != null) {
+
+                                boolean existe = false;
+
+                                for (Sala s : Servidor.juego.getArrayDeSalas()) {
+                                    if (s.getCodigoSala() == codigoSala) {
+                                        existe = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!existe) {
+                                    Servidor.juego.getArrayDeSalas().add(sala);
+
+                                    System.out.println(
+                                            "Sala cargada a memoria: "
+                                            + sala.getCodigoSala()
+                                    );
+                                }
+                            }
+
+                             escritor.println("OK|Sala presentada");
                         } catch (Exception e) {
 
                             escritor.println("ERROR|No se pudo presentar la sala");
@@ -150,6 +172,7 @@ public class ManejadorDeUsuarios extends Thread {
 
                             // 3. Enviamos de vuelta al cliente
                             escritor.println(respuesta.toString());
+                            /*ESTO HACE QUE EL PROGRAMA SE CAIGA Y NO FUNCIONE*/// Servidor.enviarATodos(respuesta.toString());
                             System.out.println("Servidor envió: " + respuesta.toString());
 
                         } catch (Exception e) {
@@ -165,8 +188,8 @@ public class ManejadorDeUsuarios extends Thread {
                         System.out.println("Codigo: " + codigoSala);
                         System.out.println("Jugador: " + nombreJugador);
 
-                        Sala sala = gestor.buscarSalaPorCodigo(codigoSala);
-                        
+                        Sala sala = gestor.buscarSalaMemoria(codigoSala);
+
                         //ESTO ES UNICAMENTE PARA LAS PRUEBAS DE FLUJO Y VER SI LLEGA ALGO//
                         System.out.println("Cantidad de salas en memoria: "
                                 + Servidor.juego.getArrayDeSalas().size());
@@ -188,21 +211,31 @@ public class ManejadorDeUsuarios extends Thread {
                             Usuario jugador = new Usuario(0, nombreJugador, "", "", 0);
                             sala.agregarJugador(jugador);
 
-                            escritor.println("OK");
+                            StringBuilder respuesta = new StringBuilder("JUGADORES|");
+
+                            for (int i = 0; i < sala.getArrayDeUsuarios().size(); i++) {
+
+                                Usuario u = sala.getArrayDeUsuarios().get(i);
+
+                                respuesta.append(u.getNombreUsuario());
+
+                                if (i < sala.getArrayDeUsuarios().size() - 1) {
+                                    respuesta.append(",");
+                                }
+                            }
+                            escritor.println(respuesta.toString());
+                            //////////
+                            System.out.println("Jugadores actuales:");
+
+                            for (Usuario u : sala.getArrayDeUsuarios()) {
+                                System.out.println("- " + u.getNombreUsuario());
+                            }
+                            //////////
+
+                           // escritor.println("OK");
                         }
-                        /////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////
 
-                        if (sala != null) {
-
-                            Usuario jugador = new Usuario(0, nombreJugador, "", "", 0);
-
-                            sala.agregarJugador(jugador);
-
-                            escritor.println("OK");
-                        } else {
-                            escritor.println("ERROR");
-                        }
-                        break;
                 }
             }
 
