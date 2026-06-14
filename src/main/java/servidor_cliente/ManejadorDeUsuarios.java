@@ -179,7 +179,48 @@ public class ManejadorDeUsuarios extends Thread {
                             escritor.println("RESPUESTA_SALAS|VACIO");
                         }
                         break;
+                    case "OBTENER_PREGUNTAS":
 
+                        int codigoSalaPreguntas
+                                = Integer.parseInt(partes[1]);
+
+                        Sala salaPreguntas
+                                = gestor.buscarSalaMemoria(codigoSalaPreguntas);
+
+                        if (salaPreguntas != null) {
+
+                            StringBuilder respuesta
+                                    = new StringBuilder("PREGUNTAS|");
+
+                            for (Preguntas p : salaPreguntas.getListaPreguntas()) {
+
+                                respuesta.append(
+                                        p.getEnunciado()
+                                );
+
+                                for (Respuestas r
+                                        : p.getArregloDeRespuestasParaPreguntas()) {
+
+                                    respuesta.append(",");
+                                    respuesta.append(
+                                            r.getRespuestas()
+                                    );
+                                }
+
+                                respuesta.append(";");
+                            }
+
+                            escritor.println(
+                                    respuesta.toString()
+                            );
+
+                            System.out.println(
+                                    "ENVIANDO PREGUNTAS: "
+                                    + respuesta
+                            );
+                        }
+
+                        break;
                     case "INICIAR_JUEGO":
 
                         int codigoSalaJuego = Integer.parseInt(partes[1]);
