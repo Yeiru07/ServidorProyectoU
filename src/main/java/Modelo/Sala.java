@@ -12,6 +12,7 @@ public class Sala {
     private ArrayList<Preguntas> listaPreguntas;
     private ArrayList<Integer> listaDeCodigos;
     Usuario propietario;
+    private boolean partidaIniciada = false;
 
     public Sala(int codigoSala, String nombreSala, boolean estado, int cantidadJugadores, Usuario propietario) {
         this.codigoSala = codigoSala;
@@ -106,6 +107,14 @@ public class Sala {
 
     public void agregarJugador(Usuario jugador) {
         arrayDeUsuarios.add(jugador);
+    }
+
+    public boolean isPartidaIniciada() {
+        return partidaIniciada;
+    }
+
+    public void setPartidaIniciada(boolean partidaIniciada) {
+        this.partidaIniciada = partidaIniciada;
     }
 
 }

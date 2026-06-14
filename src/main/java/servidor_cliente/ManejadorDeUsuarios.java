@@ -1,6 +1,8 @@
 package servidor_cliente;
 
 import Controlador.GestorUsuarios; // Importamos el gestor que creaste
+import Modelo.Preguntas;
+import Modelo.Respuestas;
 import Modelo.Sala;
 import Modelo.Usuario;
 import MySQL.ConexionBaseDeDatos;
@@ -112,6 +114,8 @@ public class ManejadorDeUsuarios extends Thread {
 
                             presentarSala(codigoSala);
                             Sala sala = gestor.buscarSalaPorCodigo(codigoSala);
+//AGREGADO
+                            sala.setListaPreguntas(gestor.obtenerPreguntasSala(codigoSala));
 
                             if (sala != null) {
 
@@ -174,6 +178,37 @@ public class ManejadorDeUsuarios extends Thread {
                             System.out.println("Error al consultar salas en el servidor: " + e.getMessage());
                             escritor.println("RESPUESTA_SALAS|VACIO");
                         }
+                        break;
+
+                    case "INICIAR_JUEGO":
+
+                        int codigoSalaJuego = Integer.parseInt(partes[1]);
+
+                        Sala salaJuego = gestor.buscarSalaMemoria(codigoSalaJuego);
+
+                        if (salaJuego != null) {
+                            salaJuego.setPartidaIniciada(true);
+                            Servidor.enviarATodos("INICIO_PARTIDA");
+                            for (Preguntas pregunta : salaJuego.getListaPreguntas()) {
+                                StringBuilder trama = new StringBuilder();
+                                trama.append("PREGUNTA|");
+                                trama.append(pregunta.getTipoDePregunta());
+                                trama.append("|");
+                                trama.append(pregunta.getEnunciado());
+
+                                for (Respuestas r : pregunta.getArregloDeRespuestasParaPreguntas()) {
+                                    trama.append("|");
+                                    trama.append(r.getRespuestas());
+                                }
+
+                                Servidor.enviarATodos(trama.toString());
+
+                                Thread.sleep(pregunta.getTiempoParaLasPreguntas() * 1000);
+                            }
+
+                            Servidor.enviarATodos("FIN_JUEGO");
+                        }
+
                         break;
                     case "UNIR_SALA":
                         int codigoSala = Integer.parseInt(partes[1]);

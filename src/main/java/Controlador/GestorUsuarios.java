@@ -16,6 +16,8 @@ import java.sql.PreparedStatement;
 import java.sql.CallableStatement;// Agregado para el procedimiento almacenado
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import Modelo.Preguntas;
+import Modelo.Respuestas;
 import servidor_cliente.Servidor;
 
 public class GestorUsuarios {
@@ -126,6 +128,82 @@ public class GestorUsuarios {
         }
 
         return null;
+    }
+
+    public ArrayList<Preguntas> obtenerPreguntasSala(
+            int codigoSala) {
+
+        ArrayList<Preguntas> preguntas
+                = new ArrayList<>();
+
+        String sql
+                = "SELECT * FROM preguntas WHERE codigoSala=?";
+
+        try (
+                Connection conexion
+                = ConexionBaseDeDatos.conectar(); PreparedStatement ps
+                = conexion.prepareStatement(sql)) {
+
+            ps.setInt(1, codigoSala);
+
+            ResultSet rs
+                    = ps.executeQuery();
+
+            while (rs.next()) {
+
+                Preguntas p
+                        = new Preguntas();
+
+                p.setEnunciado(
+                        rs.getString("enunciado")
+                );
+
+                ArrayList<Respuestas> respuestas
+                        = new ArrayList<>();
+
+                respuestas.add(
+                        new Respuestas(
+                                1,
+                                rs.getString("respuesta1"),
+                                false
+                        )
+                );
+
+                respuestas.add(
+                        new Respuestas(
+                                2,
+                                rs.getString("respuesta2"),
+                                false
+                        )
+                );
+
+                respuestas.add(
+                        new Respuestas(
+                                3,
+                                rs.getString("respuesta3"),
+                                false
+                        )
+                );
+
+                respuestas.add(
+                        new Respuestas(
+                                4,
+                                rs.getString("respuesta4"),
+                                false
+                        )
+                );
+
+                p.setArregloDeRespuestasParaPreguntas(
+                        respuestas);
+
+                preguntas.add(p);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return preguntas;
     }
 
     // 4. MÉTODOS PARA CONTROLAR LOGUEADOS EN VIVO (Para las salas del juego)
