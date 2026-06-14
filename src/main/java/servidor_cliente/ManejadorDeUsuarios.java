@@ -185,39 +185,37 @@ public class ManejadorDeUsuarios extends Thread {
                                 = Integer.parseInt(partes[1]);
 
                         Sala salaPreguntas
-                                = gestor.buscarSalaMemoria(codigoSalaPreguntas);
+                                = gestor.buscarSalaMemoria(
+                                        codigoSalaPreguntas);
 
                         if (salaPreguntas != null) {
 
                             StringBuilder respuesta
                                     = new StringBuilder("PREGUNTAS|");
 
-                            for (Preguntas p : salaPreguntas.getListaPreguntas()) {
+                            for (Preguntas p
+                                    : salaPreguntas.getListaPreguntas()) {
 
                                 respuesta.append(
-                                        p.getEnunciado()
-                                );
+                                        p.getEnunciado());
 
                                 for (Respuestas r
                                         : p.getArregloDeRespuestasParaPreguntas()) {
 
                                     respuesta.append(",");
                                     respuesta.append(
-                                            r.getRespuestas()
-                                    );
+                                            r.getRespuestas());
                                 }
 
                                 respuesta.append(";");
                             }
 
-                            escritor.println(
-                                    respuesta.toString()
-                            );
-
                             System.out.println(
                                     "ENVIANDO PREGUNTAS: "
-                                    + respuesta
-                            );
+                                    + respuesta);
+
+                            Servidor.enviarATodos(
+                                    respuesta.toString());
                         }
 
                         break;
