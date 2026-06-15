@@ -114,7 +114,7 @@ public class ManejadorDeUsuarios extends Thread {
 
                             presentarSala(codigoSala);
                             Sala sala = gestor.buscarSalaPorCodigo(codigoSala);
-//AGREGADO
+                            //AGREGADO
                             sala.setListaPreguntas(gestor.obtenerPreguntasSala(codigoSala));
 
                             if (sala != null) {
@@ -181,41 +181,27 @@ public class ManejadorDeUsuarios extends Thread {
                         break;
                     case "OBTENER_PREGUNTAS":
 
-                        int codigoSalaPreguntas
-                                = Integer.parseInt(partes[1]);
+                        int codigoSalaPreguntas = Integer.parseInt(partes[1]);
 
-                        Sala salaPreguntas
-                                = gestor.buscarSalaMemoria(
-                                        codigoSalaPreguntas);
+                        Sala salaPreguntas = gestor.buscarSalaMemoria(codigoSalaPreguntas);
 
                         if (salaPreguntas != null) {
 
-                            StringBuilder respuesta
-                                    = new StringBuilder("PREGUNTAS|");
+                            StringBuilder respuesta = new StringBuilder("PREGUNTAS|");
 
-                            for (Preguntas p
-                                    : salaPreguntas.getListaPreguntas()) {
+                            for (Preguntas p : salaPreguntas.getListaPreguntas()) {
 
-                                respuesta.append(
-                                        p.getEnunciado());
-
-                                for (Respuestas r
-                                        : p.getArregloDeRespuestasParaPreguntas()) {
-
+                                respuesta.append(p.getEnunciado());
+                                for (Respuestas r : p.getArregloDeRespuestasParaPreguntas()) {
                                     respuesta.append(",");
-                                    respuesta.append(
-                                            r.getRespuestas());
+                                    respuesta.append(r.getRespuestas());
                                 }
-
                                 respuesta.append(";");
                             }
 
-                            System.out.println(
-                                    "ENVIANDO PREGUNTAS: "
-                                    + respuesta);
+                            System.out.println("ENVIANDO PREGUNTAS: " + respuesta);
 
-                            Servidor.enviarATodos(
-                                    respuesta.toString());
+                            Servidor.enviarATodos(respuesta.toString());
                         }
 
                         break;

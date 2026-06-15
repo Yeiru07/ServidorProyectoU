@@ -130,79 +130,39 @@ public class GestorUsuarios {
         return null;
     }
 
-    public ArrayList<Preguntas> obtenerPreguntasSala(
-            int codigoSala) {
+    public ArrayList<Preguntas> obtenerPreguntasSala(int codigoSala) {
 
-        ArrayList<Preguntas> preguntas
-                = new ArrayList<>();
+        ArrayList<Preguntas> preguntas = new ArrayList<>();
 
-        String sql
-                = "SELECT * FROM preguntas WHERE codigoSala=?";
+        String sql = "SELECT * FROM preguntas WHERE codigoSala=?";
 
-        try (
-                Connection conexion
-                = ConexionBaseDeDatos.conectar(); PreparedStatement ps
-                = conexion.prepareStatement(sql)) {
+        try (Connection conexion = ConexionBaseDeDatos.conectar(); PreparedStatement ps = conexion.prepareStatement(sql)) {
 
             ps.setInt(1, codigoSala);
 
-            ResultSet rs
-                    = ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
+                Preguntas p = new Preguntas();
 
-                Preguntas p
-                        = new Preguntas();
+                p.setEnunciado(rs.getString("enunciado"));
 
-                p.setEnunciado(
-                        rs.getString("enunciado")
-                );
+                ArrayList<Respuestas> respuestas = new ArrayList<>();
 
-                ArrayList<Respuestas> respuestas
-                        = new ArrayList<>();
+                respuestas.add(new Respuestas(1, rs.getString("respuesta1"), false));
 
-                respuestas.add(
-                        new Respuestas(
-                                1,
-                                rs.getString("respuesta1"),
-                                false
-                        )
-                );
+                respuestas.add(new Respuestas(2, rs.getString("respuesta2"), false));
 
-                respuestas.add(
-                        new Respuestas(
-                                2,
-                                rs.getString("respuesta2"),
-                                false
-                        )
-                );
+                respuestas.add(new Respuestas(3, rs.getString("respuesta3"), false));
 
-                respuestas.add(
-                        new Respuestas(
-                                3,
-                                rs.getString("respuesta3"),
-                                false
-                        )
-                );
+                respuestas.add(new Respuestas(4, rs.getString("respuesta4"), false));
 
-                respuestas.add(
-                        new Respuestas(
-                                4,
-                                rs.getString("respuesta4"),
-                                false
-                        )
-                );
-
-                p.setArregloDeRespuestasParaPreguntas(
-                        respuestas);
-
+                p.setArregloDeRespuestasParaPreguntas(respuestas);
                 preguntas.add(p);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return preguntas;
     }
 
