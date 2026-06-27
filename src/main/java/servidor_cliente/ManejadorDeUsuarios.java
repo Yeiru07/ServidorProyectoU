@@ -761,6 +761,9 @@ public class ManejadorDeUsuarios extends Thread {
 
             registrarRespuesta(codigoSala, nombreUsuario, indicePregunta, puntos);
             Servidor.enviarASala(codigoSala, "PODIO|" + obtenerRankingFormateado(codigoSala));
+            if (todosRespondieronPregunta(codigoSala, indicePregunta)) {
+                Servidor.enviarASala(codigoSala, "TODOS_RESPONDIERON|" + indicePregunta);
+            }
         } catch (NumberFormatException e) {
             System.out.println("Error al parsear codigo de sala: " + codigoSalaStr);
             escritor.println("ERROR|Codigo de sala invalido");
@@ -799,6 +802,30 @@ public class ManejadorDeUsuarios extends Thread {
         } else {
             resultado.incorrectas++;
         }
+    }
+
+    private boolean todosRespondieronPregunta(int codigoSala, int indicePregunta) {
+        if (indicePregunta < 0) {
+            return false;
+        }
+
+        Sala sala = gestorSalas.buscarSala(codigoSala);
+        Map<String, ResultadoJugador> resultadosSala = resultadosPorSala.get(codigoSala);
+
+        if (sala == null || sala.getArrayDeUsuarios() == null
+                || sala.getArrayDeUsuarios().isEmpty()
+                || resultadosSala == null) {
+            return false;
+        }
+
+        for (Usuario jugador : sala.getArrayDeUsuarios()) {
+            ResultadoJugador resultado = resultadosSala.get(jugador.getNombreUsuario());
+            if (resultado == null || !resultado.preguntasRespondidas.contains(indicePregunta)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void prepararResultados(int codigoSala) {
