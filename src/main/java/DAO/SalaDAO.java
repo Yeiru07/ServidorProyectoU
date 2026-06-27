@@ -19,6 +19,10 @@ public class SalaDAO {
         this.conexion = ConexionBaseDeDatos.conectar();
     }
 
+    public SalaDAO(Connection conexion) {
+        this.conexion = conexion;
+    }
+
     // ==================== MÉTODOS PARA SALAS ====================
     /**
      * Guarda una nueva sala en la base de datos
@@ -205,6 +209,8 @@ public class SalaDAO {
                 Preguntas pregunta = new Preguntas();
                 pregunta.setEnunciado(rs.getString("enunciado"));
                 pregunta.setCodigoSala(codigoSala);
+                pregunta.setTiempoParaLasPreguntas(20);
+                pregunta.setValorPuntosPreguntas(10);
 
                 // Obtenemos el número de la respuesta correcta (1, 2, 3 o 4)
                 int correcta = rs.getInt("respuestaCorrecta");
@@ -215,6 +221,15 @@ public class SalaDAO {
                 respuestas.add(new Respuestas(2, rs.getString("respuesta2"), (correcta == 2)));
                 respuestas.add(new Respuestas(3, rs.getString("respuesta3"), (correcta == 3)));
                 respuestas.add(new Respuestas(4, rs.getString("respuesta4"), (correcta == 4)));
+
+                int respuestasConTexto = 0;
+                for (Respuestas respuesta : respuestas) {
+                    if (respuesta.getRespuestas() != null
+                            && !respuesta.getRespuestas().trim().isEmpty()) {
+                        respuestasConTexto++;
+                    }
+                }
+                pregunta.setTipoDePregunta(respuestasConTexto <= 2 ? "Verdadero O Falso" : "Quiz");
 
                 pregunta.setArregloDeRespuestasParaPreguntas(respuestas);
                 preguntas.add(pregunta);

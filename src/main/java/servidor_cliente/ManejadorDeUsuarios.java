@@ -5,11 +5,13 @@ import Modelo.Usuario;
 import Controlador.GestorSala;
 import DAO.SalaDAO;
 import DAO.UsuarioDAO;
+import MySQL.ConexionBaseDeDatos;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.sql.Connection;
 import java.util.ArrayList;
 
 /**
@@ -31,6 +33,7 @@ public class ManejadorDeUsuarios extends Thread {
     // DAOs para acceso a base de datos
     private SalaDAO salaDAO;
     private UsuarioDAO usuarioDAO;
+    private Connection conexionBD;
 
     // Gestores de logica de negocio
     private GestorSala gestorSalas;
@@ -51,9 +54,10 @@ public class ManejadorDeUsuarios extends Thread {
      */
     public ManejadorDeUsuarios(Socket socketCliente) {
         this.socketCliente = socketCliente;
-        this.salaDAO = new SalaDAO();
-        this.usuarioDAO = new UsuarioDAO();
-        this.gestorSalas = new GestorSala();
+        this.conexionBD = ConexionBaseDeDatos.conectar();
+        this.salaDAO = new SalaDAO(conexionBD);
+        this.usuarioDAO = new UsuarioDAO(conexionBD);
+        this.gestorSalas = new GestorSala(salaDAO);
         this.validador = new ValidadorTramas();
     }
 
@@ -283,22 +287,34 @@ public class ManejadorDeUsuarios extends Thread {
             return;
         }
 
-        // Guardamos la sala en la base de datos
+        String nombreSala = partes[1];
+        String codigoSala = partes[2];
+        int cantidadJugadores;
+        String nombrePropietario;
+
+        if (partes.length >= 6) {
+            cantidadJugadores = Integer.parseInt(partes[4]);
+            nombrePropietario = partes[5];
+        } else {
+            cantidadJugadores = Integer.parseInt(partes[3]);
+            nombrePropietario = partes[4];
+        }
+
         boolean guardado = salaDAO.guardarSala(
-                partes[2], partes[1], Integer.parseInt(partes[3]), partes[4]
+                codigoSala, nombreSala, cantidadJugadores, nombrePropietario
         );
 
         if (guardado) {
             // Si se guardo en BD, buscamos el usuario propietario
-            Usuario propietario = usuarioDAO.buscarUsuarioPorNombre(partes[4]);
+            Usuario propietario = usuarioDAO.buscarUsuarioPorNombre(nombrePropietario);
 
             // Creamos el objeto Sala en memoria
             // Constructor: (codigoSala, nombreSala, estado, cantidadJugadores, propietario)
             Sala salaNueva = new Sala(
-                    Integer.parseInt(partes[2]),
-                    partes[1],
+                    Integer.parseInt(codigoSala),
+                    nombreSala,
                     true,
-                    Integer.parseInt(partes[3]),
+                    cantidadJugadores,
                     propietario
             );
 
@@ -612,21 +628,13 @@ public class ManejadorDeUsuarios extends Thread {
             System.out.println("Error al cerrar socket: " + e.getMessage());
         }
 
-        // Cerramos las conexiones a base de datos de forma segura
         try {
-            if (salaDAO != null) {
-                salaDAO.cerrarConexion();
+            if (conexionBD != null && !conexionBD.isClosed()) {
+                conexionBD.close();
+                System.out.println("Conexion MySQL del cliente cerrada");
             }
         } catch (Exception e) {
-            System.out.println("Error al cerrar SalaDAO: " + e.getMessage());
-        }
-
-        try {
-            if (usuarioDAO != null) {
-                usuarioDAO.cerrarConexion();
-            }
-        } catch (Exception e) {
-            System.out.println("Error al cerrar UsuarioDAO: " + e.getMessage());
+            System.out.println("Error al cerrar conexion MySQL: " + e.getMessage());
         }
 
         System.out.println("Cliente desconectado y recursos liberados");

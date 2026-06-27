@@ -85,6 +85,7 @@ public class ValidadorTramas {
      *
      * Formato esperado:
      * Sala|nombreSala|codigoSala|cantidadJugadores|nombreUsuario
+     * Sala|nombreSala|codigoSala|estado|cantidadJugadores|nombreUsuario
      *
      * Reglas de validacion: - Debe tener al menos 5 partes - El codigo de sala
      * debe ser un numero valido - La cantidad de jugadores debe ser un numero
@@ -99,11 +100,13 @@ public class ValidadorTramas {
             return new ResultadoValidacion(false, "ERROR|Formato incompleto para sala");
         }
 
-        // Intentamos convertir el codigo y la cantidad a numeros
-        // Si falla, significa que no son valores numericos validos
         try {
-            Integer.parseInt(partes[2]);  // Validar codigo de sala
-            Integer.parseInt(partes[3]);  // Validar cantidad de jugadores
+            Integer.parseInt(partes[2]);
+            if (partes.length >= 6) {
+                Integer.parseInt(partes[4]);
+            } else {
+                Integer.parseInt(partes[3]);
+            }
         } catch (NumberFormatException e) {
             return new ResultadoValidacion(false, "ERROR|Codigo o cantidad de jugadores invalidos");
         }

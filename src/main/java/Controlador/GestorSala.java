@@ -25,6 +25,10 @@ public class GestorSala {
         this.salaDao = new SalaDAO();
     }
 
+    public GestorSala(SalaDAO salaDao) {
+        this.salaDao = salaDao;
+    }
+
     public boolean guardarSala(Sala sala, String nombreUsuario) {
 
         return salaDao.guardarSala(
@@ -200,20 +204,44 @@ public class GestorSala {
         // Recorremos cada pregunta
         for (int i = 0; i < preguntas.size(); i++) {
             Preguntas p = preguntas.get(i);
+            ArrayList<Respuestas> respuestasValidas = new ArrayList<>();
+            int correcta = 0;
 
             // Agregamos el enunciado de la pregunta
-            respuesta.append(p.getEnunciado());
+            String tipo = p.getTipoDePregunta();
+            if (tipo == null || tipo.trim().isEmpty()) {
+                tipo = "Quiz";
+            }
 
             // Agregamos las respuestas si existen
             if (p.getArregloDeRespuestasParaPreguntas() != null) {
                 ArrayList<Respuestas> respuestas = p.getArregloDeRespuestasParaPreguntas();
                 for (int j = 0; j < respuestas.size(); j++) {
                     Respuestas r = respuestas.get(j);
-                    respuesta.append(",").append(r.getRespuestas());
+                    if (r.getRespuestas() != null && !r.getRespuestas().trim().isEmpty()) {
+                        respuestasValidas.add(r);
+                        if (r.isCorrecta()) {
+                            correcta = respuestasValidas.size();
+                        }
+                    }
                 }
             }
 
             // Separador entre preguntas (excepto después de la última)
+            if (tipo.equals("Quiz") && respuestasValidas.size() <= 2) {
+                tipo = "Verdadero O Falso";
+            }
+
+            respuesta.append(p.getEnunciado()).append(",")
+                    .append(tipo).append(",")
+                    .append(p.getTiempoParaLasPreguntas() > 0 ? p.getTiempoParaLasPreguntas() : 20).append(",")
+                    .append(p.getValorPuntosPreguntas() > 0 ? p.getValorPuntosPreguntas() : 10).append(",")
+                    .append(correcta);
+
+            for (Respuestas r : respuestasValidas) {
+                respuesta.append(",").append(r.getRespuestas());
+            }
+
             if (i < preguntas.size() - 1) {
                 respuesta.append(";");
             }

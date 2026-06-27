@@ -14,6 +14,10 @@ public class UsuarioDAO {
         this.conexion = ConexionBaseDeDatos.conectar();
     }
 
+    public UsuarioDAO(Connection conexion) {
+        this.conexion = conexion;
+    }
+
     public boolean registrarUsuario(Usuario usuario) {
 
         String sql

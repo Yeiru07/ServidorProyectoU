@@ -3,10 +3,10 @@ setlocal
 
 cd /d "%~dp0"
 
-if not exist target\classes mkdir target\classes
+if not exist target\server-classes mkdir target\server-classes
 
 echo Compilando servidor...
-javac -d target\classes ^
+javac -d target\server-classes ^
   src\main\java\Interfaces\*.java ^
   src\main\java\Modelo\*.java ^
   src\main\java\Controlador\*.java ^
@@ -26,6 +26,6 @@ set "PROTOBUF_JAR=%USERPROFILE%\.m2\repository\com\google\protobuf\protobuf-java
 
 echo.
 echo Iniciando servidor en puerto 5000...
-java -cp "target\classes;%MYSQL_JAR%;%PROTOBUF_JAR%" servidor_cliente.Servidor
+java -cp "target\server-classes;%MYSQL_JAR%;%PROTOBUF_JAR%" servidor_cliente.Servidor
 
 pause
