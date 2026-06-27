@@ -27,7 +27,11 @@ public class GestorSala {
 
     public boolean guardarSala(Sala sala, String nombreUsuario) {
 
-        return salaDao.guardarSala(sala, nombreUsuario
+        return salaDao.guardarSala(
+                String.valueOf(sala.getCodigoSala()),
+                sala.getNombreSala(),
+                sala.getCantidadJugadores(),
+                nombreUsuario
         );
     }
 

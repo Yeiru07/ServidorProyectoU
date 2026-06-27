@@ -8,7 +8,6 @@ package Controlador;
  *
  * @author sronn
  */
-import DAO.UsuarioDAO;
 import Modelo.Usuario;
 import Modelo.Sala;
 import MySQL.ConexionBaseDeDatos;
@@ -24,18 +23,25 @@ import servidor_cliente.Servidor;
 public class GestorUsuarios {
 
     // Lista en memoria para saber quienes estan jugando/conectados actualmente
-    UsuarioDAO usuarioDAO;
-    private ArrayList<Usuario> usuariosConectados;
+    private ArrayList<Usuario> usuariosConectados = new ArrayList<>();
 
-    public GestorUsuarios() {
-        this.usuarioDAO = new UsuarioDAO();
-        this.usuariosConectados = new ArrayList<>();
-    }
+    //MÉTODO PARA REGISTRAR USUARIO EN LA BASE DE DATOS
+    public boolean registrarUsuarioEnBD(String nombre, String correo, String contra) {
+        String sql = "INSERT INTO usuarios (nombreUsuario, correo, contraseña, puntuajeAcumulado) VALUES (?, ?, ?, 0.0)";
 
-    public boolean registrarUsuario(Usuario usuario) {
+        try (Connection conexion = ConexionBaseDeDatos.conectar(); PreparedStatement ps = conexion.prepareStatement(sql)) {
 
-        return usuarioDAO.registrarUsuario(usuario);
+            ps.setString(1, nombre);
+            ps.setString(2, correo);
+            ps.setString(3, contra);
 
+            int filas = ps.executeUpdate();
+            return filas > 0; // Si afectó filas, el registro fue exitoso
+
+        } catch (Exception e) {
+            System.out.println("Error SQL al registrar: " + e.getMessage());
+            return false; // Devuelve false si el usuario o correo ya existen (duplicados)
+        }
     }
 
     //MÉTODO PARA VERIFICAR LOGIN EN LA BASE DE DATOS

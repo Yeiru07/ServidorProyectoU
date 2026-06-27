@@ -1,9 +1,8 @@
 package servidor_cliente;
 
-import Controlador.GestorSala;
-import Controlador.GestorUsuarios;
 import Modelo.Sala;
 import Modelo.Usuario;
+import Controlador.GestorSala;
 import DAO.SalaDAO;
 import DAO.UsuarioDAO;
 import java.io.BufferedReader;
@@ -34,10 +33,7 @@ public class ManejadorDeUsuarios extends Thread {
     private UsuarioDAO usuarioDAO;
 
     // Gestores de logica de negocio
-    private GestorUsuarios gestoUsuario = new GestorUsuarios();
-    //private GestorPreguntas gestorPreguntas = new GestorPreguntas();
-    private GestorSala gestorSalas = new GestorSala();
-
+    private GestorSala gestorSalas;
     private ValidadorTramas validador;
 
     // Estado actual del cliente
@@ -152,6 +148,14 @@ public class ManejadorDeUsuarios extends Thread {
                 case "CERRAR_SALA":
                     manejarCerrarSala(partes);
                     break;
+                // En el switch de procesarTrama
+                case "RESPUESTA":
+                    manejarRespuesta(partes);
+                    break;
+                // En el switch de procesarTrama, agrega este caso:
+                case "SIGUIENTE_PREGUNTA":
+                    manejarSiguientePregunta(partes);
+                    break;
                 default:
                     escritor.println("ERROR|Comando no reconocido: " + partes[0]);
                     break;
@@ -184,7 +188,7 @@ public class ManejadorDeUsuarios extends Thread {
 
         // Intentamos registrar al usuario en la base de datos
         Usuario usuario = new Usuario(partes[1], partes[2], partes[3]);
-        boolean registrado = gestoUsuario.registrarUsuario(usuario);
+        boolean registrado = usuarioDAO.registrarUsuario(usuario);
         if (registrado) {
             escritor.println("OK|Usuario registrado");
         } else {
@@ -231,18 +235,29 @@ public class ManejadorDeUsuarios extends Thread {
      * partes Array con las partes de la trama
      */
     private void manejarPregunta(String[] partes) {
-        // Validamos el formato de la trama
         ResultadoValidacion validacion = validador.validarPregunta(partes);
         if (!validacion.esValido) {
             escritor.println(validacion.mensajeError);
             return;
         }
 
-        // Guardamos la pregunta en la base de datos
+        // Ahora la trama tiene 8 partes (agregamos respuestaCorrecta al final)
+        // Formato: Pregunta|enunciado|resp1|resp2|resp3|resp4|codigoSala|respuestaCorrecta
+        int respuestaCorrecta = 0;
+        if (partes.length >= 8) {
+            try {
+                respuestaCorrecta = Integer.parseInt(partes[7]);
+            } catch (NumberFormatException e) {
+                respuestaCorrecta = 0;
+            }
+        }
+
         boolean guardado = salaDAO.guardarPregunta(
                 partes[1], partes[2], partes[3], partes[4], partes[5],
-                Integer.parseInt(partes[6])
+                Integer.parseInt(partes[6]),
+                respuestaCorrecta
         );
+
         if (guardado) {
             escritor.println("GUARDADO_OK");
         } else {
@@ -269,12 +284,9 @@ public class ManejadorDeUsuarios extends Thread {
         }
 
         // Guardamos la sala en la base de datos
-        
-        Sala sala= new Sala( Integer.parseInt(partes[2]),partes[1], Boolean.parseBoolean(partes[3]),Integer.parseInt(partes[4]));
-        String nombreUsuario= partes[5];
-        boolean guardado = gestorSalas.guardarSala(sala, nombreUsuario);
-              
-        
+        boolean guardado = salaDAO.guardarSala(
+                partes[2], partes[1], Integer.parseInt(partes[3]), partes[4]
+        );
 
         if (guardado) {
             // Si se guardo en BD, buscamos el usuario propietario
@@ -572,24 +584,26 @@ public class ManejadorDeUsuarios extends Thread {
      */
     private void desconectarCliente() {
         // Removemos al cliente de la lista global
-        Servidor.clientes.remove(escritor);
+        if (escritor != null) {
+            Servidor.clientes.remove(escritor);
+        }
 
         // Si el cliente estaba en una sala, limpiamos su estado
         if (codigoSalaActual > 0 && escritor != null) {
-            // Removemos al cliente del mapa de clientes por sala
-            Servidor.removerClienteDeSala(codigoSalaActual, escritor);
+            try {
+                Servidor.removerClienteDeSala(codigoSalaActual, escritor);
+                gestorSalas.removerJugadorDeSala(codigoSalaActual, nombreUsuario);
 
-            // Removemos al jugador de la lista de jugadores de la sala
-            gestorSalas.removerJugadorDeSala(codigoSalaActual, nombreUsuario);
-
-            // Notificamos a los demas clientes en la sala
-            String listaJugadores = gestorSalas.obtenerListaJugadoresFormateada(codigoSalaActual);
-            if (!listaJugadores.isEmpty()) {
-                Servidor.enviarASala(codigoSalaActual, listaJugadores);
+                String listaJugadores = gestorSalas.obtenerListaJugadoresFormateada(codigoSalaActual);
+                if (!listaJugadores.isEmpty()) {
+                    Servidor.enviarASala(codigoSalaActual, listaJugadores);
+                }
+            } catch (Exception e) {
+                System.out.println("Error al limpiar sala: " + e.getMessage());
             }
         }
 
-        // Cerramos el socket
+        // Cerramos el socket de forma segura
         try {
             if (socketCliente != null && !socketCliente.isClosed()) {
                 socketCliente.close();
@@ -598,14 +612,83 @@ public class ManejadorDeUsuarios extends Thread {
             System.out.println("Error al cerrar socket: " + e.getMessage());
         }
 
-        // Cerramos las conexiones a base de datos
-        if (salaDAO != null) {
-            salaDAO.cerrarConexion();
+        // Cerramos las conexiones a base de datos de forma segura
+        try {
+            if (salaDAO != null) {
+                salaDAO.cerrarConexion();
+            }
+        } catch (Exception e) {
+            System.out.println("Error al cerrar SalaDAO: " + e.getMessage());
         }
-        if (usuarioDAO != null) {
-            usuarioDAO.cerrarConexion();
+
+        try {
+            if (usuarioDAO != null) {
+                usuarioDAO.cerrarConexion();
+            }
+        } catch (Exception e) {
+            System.out.println("Error al cerrar UsuarioDAO: " + e.getMessage());
         }
 
         System.out.println("Cliente desconectado y recursos liberados");
+    }
+
+    /**
+     * Maneja el comando SIGUIENTE_PREGUNTA. El presentador avisa al servidor
+     * que pase a la siguiente pregunta. El servidor notifica a TODOS los
+     * jugadores de la sala.
+     *
+     * Formato esperado: SIGUIENTE_PREGUNTA|codigoSala|indicePregunta
+     */
+    private void manejarSiguientePregunta(String[] partes) {
+        if (partes.length < 3) {
+            return;
+        }
+
+        int codigoSala = Integer.parseInt(partes[1]);
+        int indicePregunta = Integer.parseInt(partes[2]);
+
+        // Enviamos a TODOS en la sala que cambien a la pregunta indicada
+        String mensaje = "CAMBIAR_PREGUNTA|" + indicePregunta;
+        Servidor.enviarASala(codigoSala, mensaje);
+
+        System.out.println("Presentador cambio a pregunta " + indicePregunta + " en sala " + codigoSala);
+    }
+
+    private void manejarRespuesta(String[] partes) {
+        // Formato: RESPUESTA|codigoSala|nombreUsuario|respuesta|tiempoRestante
+        if (partes.length < 5) {
+            System.out.println("❌ Trama de respuesta incompleta: " + String.join("|", partes));
+            return;
+        }
+
+        String codigoSalaStr = partes[1].trim();
+        String nombreUsuario = partes[2];
+        String respuesta = partes[3];
+        String tiempoStr = partes[4];
+
+        // 🔴 IMPORTANTE: Si el código de sala está vacío, usar el código de sala actual del cliente
+        if (codigoSalaStr == null || codigoSalaStr.isEmpty()) {
+            if (this.codigoSalaActual > 0) {
+                codigoSalaStr = String.valueOf(this.codigoSalaActual);
+                System.out.println("⚠️ Código de sala vacío, usando sala actual: " + codigoSalaStr);
+            } else {
+                System.out.println("❌ Error: Código de sala vacío y no hay sala actual");
+                escritor.println("ERROR|Código de sala inválido");
+                return;
+            }
+        }
+
+        try {
+            int codigoSala = Integer.parseInt(codigoSalaStr);
+
+            System.out.println("✅ Respuesta de " + nombreUsuario + " en sala " + codigoSala
+                    + ": " + respuesta + " (tiempo: " + tiempoStr + "s)");
+
+            // Aquí puedes guardar la respuesta en BD o procesar puntajes
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Error al parsear código de sala: " + codigoSalaStr);
+            escritor.println("ERROR|Código de sala inválido");
+            e.printStackTrace();
+        }
     }
 }

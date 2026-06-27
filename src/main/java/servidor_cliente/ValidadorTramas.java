@@ -28,28 +28,14 @@ public class ValidadorTramas {
      * partes Array con las partes de la trama return ResultadoValidacion con el
      * resultado de la validacion
      */
-    public ResultadoValidacion validarRegistro(String[] partes) {
-        // Verificamos que la trama tenga suficientes partes
-        if (partes.length < 4) {
-            return new ResultadoValidacion(false, "ERROR|Formato: REGISTRO|nombre|correo|contrasena");
+    public ResultadoValidacion validarPregunta(String[] partes) {
+        // Ahora aceptamos 7 u 8 partes (con o sin respuestaCorrecta)
+        if (partes.length < 7) {
+            return new ResultadoValidacion(false, "ERROR|Formato de pregunta incompleto");
         }
-
-        // Validamos que el nombre no este vacio (despues de quitar espacios)
         if (partes[1].trim().isEmpty()) {
-            return new ResultadoValidacion(false, "ERROR|El nombre de usuario no puede estar vacio");
+            return new ResultadoValidacion(false, "ERROR|El enunciado no puede estar vacio");
         }
-
-        // Validamos que el correo no este vacio y contenga el simbolo @
-        if (partes[2].trim().isEmpty() || !partes[2].contains("@")) {
-            return new ResultadoValidacion(false, "ERROR|El correo no es valido");
-        }
-
-        // Validamos que la contrasena tenga al menos 4 caracteres
-        if (partes[3].trim().length() < 4) {
-            return new ResultadoValidacion(false, "ERROR|La contrasena debe tener al menos 4 caracteres");
-        }
-
-        // Todas las validaciones pasaron
         return new ResultadoValidacion(true, null);
     }
 
@@ -94,21 +80,6 @@ public class ValidadorTramas {
      * partes Array con las partes de la trama return ResultadoValidacion con el
      * resultado de la validacion
      */
-    public ResultadoValidacion validarPregunta(String[] partes) {
-        // Verificamos que la trama tenga el numero minimo de partes
-        if (partes.length < 7) {
-            return new ResultadoValidacion(false, "ERROR|Formato de pregunta incompleto");
-        }
-
-        // Validamos que el enunciado no este vacio
-        if (partes[1].trim().isEmpty()) {
-            return new ResultadoValidacion(false, "ERROR|El enunciado no puede estar vacio");
-        }
-
-        // Validacion exitosa
-        return new ResultadoValidacion(true, null);
-    }
-
     /**
      * Valida la trama de creacion de sala.
      *
@@ -227,6 +198,43 @@ public class ValidadorTramas {
         }
 
         // Validacion exitosa
+        return new ResultadoValidacion(true, null);
+    }
+
+    /**
+     * Valida la trama de registro de usuario.
+     *
+     * Formato esperado: REGISTRO|nombre|correo|contrasena
+     *
+     * Reglas de validacion: - Debe tener al menos 4 partes - El nombre de
+     * usuario no puede estar vacio - El correo no puede estar vacio y debe
+     * contener el simbolo @ - La contrasena debe tener al menos 4 caracteres
+     *
+     * @param partes Array con las partes de la trama
+     * @return ResultadoValidacion con el resultado de la validacion
+     */
+    public ResultadoValidacion validarRegistro(String[] partes) {
+        // Verificamos que la trama tenga suficientes partes
+        if (partes.length < 4) {
+            return new ResultadoValidacion(false, "ERROR|Formato: REGISTRO|nombre|correo|contrasena");
+        }
+
+        // Validamos que el nombre no este vacio (despues de quitar espacios)
+        if (partes[1].trim().isEmpty()) {
+            return new ResultadoValidacion(false, "ERROR|El nombre de usuario no puede estar vacio");
+        }
+
+        // Validamos que el correo no este vacio y contenga el simbolo @
+        if (partes[2].trim().isEmpty() || !partes[2].contains("@")) {
+            return new ResultadoValidacion(false, "ERROR|El correo no es valido");
+        }
+
+        // Validamos que la contrasena tenga al menos 4 caracteres
+        if (partes[3].trim().length() < 4) {
+            return new ResultadoValidacion(false, "ERROR|La contrasena debe tener al menos 4 caracteres");
+        }
+
+        // Todas las validaciones pasaron
         return new ResultadoValidacion(true, null);
     }
 }
