@@ -13,6 +13,12 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Clase que maneja la comunicacion con un cliente conectado al servidor.
@@ -26,6 +32,8 @@ import java.util.ArrayList;
  * cliente (sala actual, nombre de usuario)
  */
 public class ManejadorDeUsuarios extends Thread {
+
+    private static final Map<Integer, Map<String, ResultadoJugador>> resultadosPorSala = new HashMap<>();
 
     // Socket para la comunicacion con el cliente
     private Socket socketCliente;
@@ -154,11 +162,14 @@ public class ManejadorDeUsuarios extends Thread {
                     break;
                 // En el switch de procesarTrama
                 case "RESPUESTA":
-                    manejarRespuesta(partes);
+                    manejarRespuestaEnJuego(partes);
                     break;
                 // En el switch de procesarTrama, agrega este caso:
                 case "SIGUIENTE_PREGUNTA":
                     manejarSiguientePregunta(partes);
+                    break;
+                case "FINALIZAR_JUEGO":
+                    manejarFinalizarJuego(partes);
                     break;
                 default:
                     escritor.println("ERROR|Comando no reconocido: " + partes[0]);
@@ -416,6 +427,8 @@ public class ManejadorDeUsuarios extends Thread {
 
         int codigoSala = Integer.parseInt(partes[1]);
 
+        prepararResultados(codigoSala);
+
         // Obtenemos las preguntas formateadas desde el gestor de salas
         String preguntasFormateadas = gestorSalas.formatearPreguntasParaEnvio(codigoSala);
 
@@ -443,6 +456,8 @@ public class ManejadorDeUsuarios extends Thread {
         }
 
         int codigoSala = Integer.parseInt(partes[1]);
+
+        prepararResultados(codigoSala);
 
         // Delegamos al gestor de salas el inicio del juego
         gestorSalas.iniciarJuego(codigoSala);
@@ -655,6 +670,8 @@ public class ManejadorDeUsuarios extends Thread {
         int codigoSala = Integer.parseInt(partes[1]);
         int indicePregunta = Integer.parseInt(partes[2]);
 
+        Servidor.enviarASala(codigoSala, "PODIO|" + obtenerRankingFormateado(codigoSala));
+
         // Enviamos a TODOS en la sala que cambien a la pregunta indicada
         String mensaje = "CAMBIAR_PREGUNTA|" + indicePregunta;
         Servidor.enviarASala(codigoSala, mensaje);
@@ -697,6 +714,153 @@ public class ManejadorDeUsuarios extends Thread {
             System.out.println("❌ Error al parsear código de sala: " + codigoSalaStr);
             escritor.println("ERROR|Código de sala inválido");
             e.printStackTrace();
+        }
+    }
+
+    private void manejarRespuestaEnJuego(String[] partes) {
+        if (partes.length < 5) {
+            System.out.println("Trama de respuesta incompleta: " + String.join("|", partes));
+            return;
+        }
+
+        String codigoSalaStr = partes[1].trim();
+        String nombreUsuario = partes[2];
+        int indicePregunta = -1;
+        String respuesta;
+        String tiempoStr;
+        int puntos = 0;
+
+        if (partes.length >= 7) {
+            indicePregunta = parseEntero(partes[3], -1);
+            respuesta = partes[4];
+            tiempoStr = partes[5];
+            puntos = parseEntero(partes[6], 0);
+        } else {
+            respuesta = partes[3];
+            tiempoStr = partes[4];
+            if (partes.length >= 6) {
+                puntos = parseEntero(partes[5], 0);
+            }
+        }
+
+        if (codigoSalaStr == null || codigoSalaStr.isEmpty()) {
+            if (this.codigoSalaActual > 0) {
+                codigoSalaStr = String.valueOf(this.codigoSalaActual);
+            } else {
+                escritor.println("ERROR|Codigo de sala invalido");
+                return;
+            }
+        }
+
+        try {
+            int codigoSala = Integer.parseInt(codigoSalaStr);
+
+            System.out.println("Respuesta de " + nombreUsuario + " en sala " + codigoSala
+                    + ": " + respuesta + " (pregunta: " + indicePregunta
+                    + ", tiempo: " + tiempoStr + "s, puntos: " + puntos + ")");
+
+            registrarRespuesta(codigoSala, nombreUsuario, indicePregunta, puntos);
+            Servidor.enviarASala(codigoSala, "PODIO|" + obtenerRankingFormateado(codigoSala));
+        } catch (NumberFormatException e) {
+            System.out.println("Error al parsear codigo de sala: " + codigoSalaStr);
+            escritor.println("ERROR|Codigo de sala invalido");
+            e.printStackTrace();
+        }
+    }
+
+    private void manejarFinalizarJuego(String[] partes) {
+        ResultadoValidacion validacion = validador.validarCodigoSala(partes);
+        if (!validacion.esValido) {
+            return;
+        }
+
+        int codigoSala = Integer.parseInt(partes[1]);
+        String ranking = obtenerRankingFormateado(codigoSala);
+        Servidor.enviarASala(codigoSala, "RANKING_FINAL|" + ranking);
+        Servidor.enviarASala(codigoSala, "FINALIZAR_JUEGO");
+        System.out.println("Juego finalizado en sala " + codigoSala + ". Ranking: " + ranking);
+    }
+
+    private void registrarRespuesta(int codigoSala, String nombreUsuario, int indicePregunta, int puntos) {
+        Map<String, ResultadoJugador> resultadosSala = resultadosPorSala.computeIfAbsent(codigoSala, k -> new HashMap<>());
+        ResultadoJugador resultado = resultadosSala.computeIfAbsent(nombreUsuario, ResultadoJugador::new);
+
+        if (indicePregunta >= 0 && resultado.preguntasRespondidas.contains(indicePregunta)) {
+            return;
+        }
+
+        if (indicePregunta >= 0) {
+            resultado.preguntasRespondidas.add(indicePregunta);
+        }
+
+        resultado.puntos += Math.max(0, puntos);
+        if (puntos > 0) {
+            resultado.correctas++;
+        } else {
+            resultado.incorrectas++;
+        }
+    }
+
+    private void prepararResultados(int codigoSala) {
+        Map<String, ResultadoJugador> resultadosSala = new HashMap<>();
+        Sala sala = gestorSalas.buscarSala(codigoSala);
+
+        if (sala != null && sala.getArrayDeUsuarios() != null) {
+            for (Usuario jugador : sala.getArrayDeUsuarios()) {
+                resultadosSala.put(jugador.getNombreUsuario(), new ResultadoJugador(jugador.getNombreUsuario()));
+            }
+        }
+
+        resultadosPorSala.put(codigoSala, resultadosSala);
+    }
+
+    private String obtenerRankingFormateado(int codigoSala) {
+        Map<String, ResultadoJugador> resultadosSala = resultadosPorSala.get(codigoSala);
+
+        if (resultadosSala == null || resultadosSala.isEmpty()) {
+            return "";
+        }
+
+        ArrayList<ResultadoJugador> ranking = new ArrayList<>(resultadosSala.values());
+        Collections.sort(ranking, Comparator
+                .comparingInt((ResultadoJugador r) -> r.correctas).reversed()
+                .thenComparing(Comparator.comparingInt((ResultadoJugador r) -> r.puntos).reversed())
+                .thenComparing(r -> r.nombre.toLowerCase()));
+
+        StringBuilder respuesta = new StringBuilder();
+        for (int i = 0; i < ranking.size(); i++) {
+            ResultadoJugador r = ranking.get(i);
+            respuesta.append(r.nombre).append(",")
+                    .append(r.correctas).append(",")
+                    .append(r.incorrectas).append(",")
+                    .append(r.puntos);
+
+            if (i < ranking.size() - 1) {
+                respuesta.append(";");
+            }
+        }
+
+        return respuesta.toString();
+    }
+
+    private int parseEntero(String valor, int valorDefecto) {
+        try {
+            return Integer.parseInt(valor);
+        } catch (Exception e) {
+            return valorDefecto;
+        }
+    }
+
+    private static class ResultadoJugador {
+
+        private final String nombre;
+        private int correctas;
+        private int incorrectas;
+        private int puntos;
+        private final Set<Integer> preguntasRespondidas = new HashSet<>();
+
+        private ResultadoJugador(String nombre) {
+            this.nombre = nombre;
         }
     }
 }
