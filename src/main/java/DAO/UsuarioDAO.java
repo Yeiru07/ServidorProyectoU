@@ -14,65 +14,65 @@ public class UsuarioDAO {
         this.conexion = ConexionBaseDeDatos.conectar();
     }
 
-    /**
-     * Registra un nuevo usuario en la base de datos USANDO TU CONSTRUCTOR:
-     * Usuario(int idUsuario, String nombreUsuario, String correo, String
-     * contraseña, double puntuajeAcumulado)
-     */
-    public boolean registrarUsuario(String nombreUsuario, String correo, String contraseña) {
-        // Primero verificamos si el usuario o correo ya existen
-        if (existeUsuario(nombreUsuario) || existeCorreo(correo)) {
-            System.out.println("El usuario o correo ya existe");
-            return false;
-        }
+    public boolean registrarUsuario(Usuario usuario) {
 
-        String sql = "INSERT INTO usuarios (nombreUsuario, correo, contraseña) VALUES (?, ?, ?)";
+        String sql
+                = "INSERT INTO usuarios "
+                + "(nombreUsuario, correo, contraseña, puntuajeAcumulado) "
+                + "VALUES (?, ?, ?, 0.0)";
 
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setString(1, nombreUsuario);
-            ps.setString(2, correo);
-            ps.setString(3, contraseña); // Idealmente deberías hashear la contraseña
+        try (
+                PreparedStatement ps = conexion.prepareStatement(sql)) {
 
-            int filas = ps.executeUpdate();
-            System.out.println("Usuario registrado. Filas afectadas: " + filas);
-            return filas > 0;
+            ps.setString(1, usuario.getNombreUsuario());
+            ps.setString(2, usuario.getCorreo());
+            ps.setString(3, usuario.getContraseña());
+
+            return ps.executeUpdate() > 0;
 
         } catch (Exception e) {
-            System.out.println("Error al registrar usuario: " + e.getMessage());
+
+            System.out.println(
+                    "Error SQL al registrar: "
+                    + e.getMessage()
+            );
+
             return false;
         }
     }
 
-    /**
-     * Verifica las credenciales de login
-     */
-    public boolean verificarLogin(String nombreUsuario, String contraseña) {
-        String sql = "SELECT idusuarios FROM usuarios WHERE nombreUsuario = ? AND contraseña = ?";
+    public boolean verificarLogin(
+            String nombre,
+            String contra) {
 
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setString(1, nombreUsuario);
-            ps.setString(2, contraseña);
-            ResultSet rs = ps.executeQuery();
+        String sql
+                = "SELECT * "
+                + "FROM usuarios "
+                + "WHERE nombreUsuario = ? "
+                + "AND contraseña = ?";
 
-            boolean loginCorrecto = rs.next();
-            if (loginCorrecto) {
-                System.out.println("Login exitoso para: " + nombreUsuario);
-            } else {
-                System.out.println("Login fallido para: " + nombreUsuario);
+        try (
+                PreparedStatement ps = conexion.prepareStatement(sql)) {
+
+            ps.setString(1, nombre);
+            ps.setString(2, contra);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                return rs.next();
             }
-            return loginCorrecto;
 
         } catch (Exception e) {
-            System.out.println("Error al verificar login: " + e.getMessage());
+
+            System.out.println(
+                    "Error SQL en login: "
+                    + e.getMessage()
+            );
+
             return false;
         }
     }
 
-    /**
-     * Busca un usuario por su nombre USANDO TU CONSTRUCTOR: Usuario(int
-     * idUsuario, String nombreUsuario, String correo, String contraseña, double
-     * puntuajeAcumulado)
-     */
     public Usuario buscarUsuarioPorNombre(String nombreUsuario) {
         String sql = "SELECT idusuarios, nombreUsuario, correo, contraseña FROM usuarios WHERE nombreUsuario = ?";
 

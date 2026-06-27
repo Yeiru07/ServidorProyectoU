@@ -4,10 +4,10 @@ import java.util.ArrayList;
 
 public class Sala {
 
-    private int codigoSala;
-    private String nombreSala;
-    private boolean estado;
-    private int cantidadJugadores;
+    private int codigoSala;//se guarda en base de datos
+    private String nombreSala;//se guarda en base de datos
+    private boolean estado;//se guarda en base de datos
+    private int cantidadJugadores;//se guarda en base de datos
     private ArrayList<Usuario> arrayDeUsuarios;
     private ArrayList<Preguntas> listaPreguntas;
     private ArrayList<Integer> listaDeCodigos;

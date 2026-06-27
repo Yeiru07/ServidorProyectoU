@@ -5,6 +5,7 @@ import Modelo.Respuestas;
 import Modelo.Sala;
 import Modelo.Usuario;
 import MySQL.ConexionBaseDeDatos;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,49 +24,91 @@ public class SalaDAO {
     /**
      * Guarda una nueva sala en la base de datos
      */
-    public boolean guardarSala(String codigoSala, String nombreSala, int cantidadJugadores, String nombreUsuario) {
-        String sql = "INSERT INTO sala (codigoSala, nombreSala, cantidadJugadore, fk_idUsuario) "
-                + "VALUES (?, ?, ?, (SELECT idusuarios FROM usuarios WHERE nombreUsuario = ? LIMIT 1))";
+    public boolean guardarSala(Sala sala, String nombreUsuario) {
 
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setString(1, codigoSala);
-            ps.setString(2, nombreSala);
-            ps.setInt(3, cantidadJugadores);
+        String sql
+                = "INSERT INTO sala "
+                + "(codigoSala, nombreSala, cantidadJugadore, fk_idUsuario) "
+                + "VALUES (?, ?, ?, "
+                + "(SELECT idusuarios "
+                + "FROM usuarios "
+                + "WHERE nombreUsuario = ? LIMIT 1))";
+
+        try (
+                Connection conexion = ConexionBaseDeDatos.conectar(); PreparedStatement ps = conexion.prepareStatement(sql)) {
+
+            ps.setInt(1, sala.getCodigoSala());
+            ps.setString(2, sala.getNombreSala());
+            ps.setInt(3, sala.getCantidadJugadores());
             ps.setString(4, nombreUsuario);
 
-            int filas = ps.executeUpdate();
-            System.out.println("Sala guardada en BD. Filas afectadas: " + filas);
-            return filas > 0;
+            return ps.executeUpdate() > 0;
 
         } catch (Exception e) {
-            System.out.println("Error al guardar sala: " + e.getMessage());
+
+            e.printStackTrace();
             return false;
         }
+    }
+
+    public boolean presentarSala(int codigoSala) {
+
+        String sql
+                = "UPDATE sala "
+                + "SET estado = 1 "
+                + "WHERE codigoSala = ?";
+
+        try (
+                Connection conexion = ConexionBaseDeDatos.conectar(); PreparedStatement ps = conexion.prepareStatement(sql)) {
+
+            ps.setInt(1, codigoSala);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public ArrayList<Sala> consultarSalasDeUsuario(String nombreUsuario) {
+
+        ArrayList<Sala> listaSalas = new ArrayList<>();
+
+        String sql = "{call ObtenerSalasDeUsuario(?)}";
+
+        try (
+                Connection conexion = ConexionBaseDeDatos.conectar(); CallableStatement cs = conexion.prepareCall(sql)) {
+
+            cs.setString(1, nombreUsuario);
+
+            try (ResultSet rs = cs.executeQuery()) {
+
+                while (rs.next()) {
+
+                    Sala sala = new Sala(
+                            rs.getInt("codigoSala"),
+                            rs.getString("nombreSala"),
+                            true,
+                            rs.getInt("cantidadJugadore")
+                    );
+
+                    listaSalas.add(sala);
+                }
+            }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+
+        return listaSalas;
     }
 
     /**
      * Actualiza el estado de una sala a "presentada" (estado = 1)
      */
-    public boolean presentarSala(int codigoSala) {
-        String sql = "UPDATE sala SET estado = 1 WHERE codigoSala = ?";
-
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setInt(1, codigoSala);
-            int filas = ps.executeUpdate();
-
-            if (filas > 0) {
-                System.out.println("Sala " + codigoSala + " presentada correctamente");
-                return true;
-            } else {
-                System.out.println("No existe la sala " + codigoSala + " en la BD");
-                return false;
-            }
-        } catch (Exception e) {
-            System.out.println("Error al presentar sala: " + e.getMessage());
-            return false;
-        }
-    }
-
     /**
      * Busca una sala por su código y carga sus preguntas USANDO TU CONSTRUCTOR:
      * Sala(int codigoSala, String nombreSala, boolean estado, int
@@ -114,42 +157,6 @@ public class SalaDAO {
         return null;
     }
 
-    /**
-     * Consulta todas las salas creadas por un usuario específico USANDO TU
-     * CONSTRUCTOR: Sala(int codigoSala, String nombreSala, boolean estado, int
-     * cantidadJugadores)
-     */
-    public ArrayList<Sala> consultarSalasDeUsuario(String nombreUsuario) {
-        ArrayList<Sala> salas = new ArrayList<>();
-        String sql = "SELECT s.codigoSala, s.nombreSala, s.cantidadJugadore, s.estado "
-                + "FROM sala s "
-                + "INNER JOIN usuarios u ON s.fk_idUsuario = u.idusuarios "
-                + "WHERE u.nombreUsuario = ?";
-
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setString(1, nombreUsuario);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                // Usando tu constructor de 4 parámetros
-                Sala sala = new Sala(
-                        rs.getInt("codigoSala"),
-                        rs.getString("nombreSala"),
-                        rs.getBoolean("estado"),
-                        rs.getInt("cantidadJugadore")
-                );
-                salas.add(sala);
-            }
-        } catch (Exception e) {
-            System.out.println("Error al consultar salas del usuario: " + e.getMessage());
-        }
-        return salas;
-    }
-
-    // ==================== MÉTODOS PARA PREGUNTAS ====================
-    /**
-     * Guarda una pregunta en la base de datos
-     */
     public boolean guardarPregunta(String enunciado, String respuesta1, String respuesta2,
             String respuesta3, String respuesta4, int codigoSala) {
         String sql = "INSERT INTO preguntas (enunciado, respuesta1, respuesta2, respuesta3, respuesta4, codigoSala) "

@@ -41,7 +41,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.4</version>
                 <configuration>
-                    <mainClass>proyectou.servidorproyecto.App</mainClass>
+                    <mainClass>servidor_cliente.Servidor</mainClass>
                 </configuration>
                 <executions>
                     <execution>

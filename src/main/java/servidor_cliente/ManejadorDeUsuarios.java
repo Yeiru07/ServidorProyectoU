@@ -1,5 +1,7 @@
 package servidor_cliente;
 
+import Controlador.GestorSala;
+import Controlador.GestorUsuarios;
 import Modelo.Sala;
 import Modelo.Usuario;
 import DAO.SalaDAO;
@@ -32,7 +34,10 @@ public class ManejadorDeUsuarios extends Thread {
     private UsuarioDAO usuarioDAO;
 
     // Gestores de logica de negocio
-    private GestorSalas gestorSalas;
+    private GestorUsuarios gestoUsuario = new GestorUsuarios();
+    //private GestorPreguntas gestorPreguntas = new GestorPreguntas();
+    private GestorSala gestorSalas = new GestorSala();
+
     private ValidadorTramas validador;
 
     // Estado actual del cliente
@@ -52,7 +57,7 @@ public class ManejadorDeUsuarios extends Thread {
         this.socketCliente = socketCliente;
         this.salaDAO = new SalaDAO();
         this.usuarioDAO = new UsuarioDAO();
-        this.gestorSalas = new GestorSalas();
+        this.gestorSalas = new GestorSala();
         this.validador = new ValidadorTramas();
     }
 
@@ -178,7 +183,8 @@ public class ManejadorDeUsuarios extends Thread {
         }
 
         // Intentamos registrar al usuario en la base de datos
-        boolean registrado = usuarioDAO.registrarUsuario(partes[1], partes[2], partes[3]);
+        Usuario usuario = new Usuario(partes[1], partes[2], partes[3]);
+        boolean registrado = gestoUsuario.registrarUsuario(usuario);
         if (registrado) {
             escritor.println("OK|Usuario registrado");
         } else {
@@ -263,9 +269,12 @@ public class ManejadorDeUsuarios extends Thread {
         }
 
         // Guardamos la sala en la base de datos
-        boolean guardado = salaDAO.guardarSala(
-                partes[2], partes[1], Integer.parseInt(partes[3]), partes[4]
-        );
+        
+        Sala sala= new Sala( Integer.parseInt(partes[2]),partes[1], Boolean.parseBoolean(partes[3]),Integer.parseInt(partes[4]));
+        String nombreUsuario= partes[5];
+        boolean guardado = gestorSalas.guardarSala(sala, nombreUsuario);
+              
+        
 
         if (guardado) {
             // Si se guardo en BD, buscamos el usuario propietario
