@@ -80,6 +80,8 @@ public class GestorSala {
                 s.setListaPreguntas(sala.getListaPreguntas());
                 s.setNombreSala(sala.getNombreSala());
                 s.setCantidadJugadores(sala.getCantidadJugadores());
+                s.setArrayDeUsuarios(sala.getArrayDeUsuarios());
+                s.setPartidaIniciada(sala.isPartidaIniciada());
                 existe = true;
                 System.out.println("Sala " + sala.getCodigoSala() + " actualizada en memoria");
                 break; // Salimos del bucle, ya encontramos la sala

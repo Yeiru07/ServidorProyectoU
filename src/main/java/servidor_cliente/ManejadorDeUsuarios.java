@@ -367,6 +367,12 @@ public class ManejadorDeUsuarios extends Thread {
         if (sala != null) {
             // Guardamos la referencia de la sala actual para este cliente
             this.codigoSalaActual = codigoSala;
+            this.nombreUsuario = "";
+
+            sala.setArrayDeUsuarios(new ArrayList<>());
+            sala.setPartidaIniciada(false);
+            resultadosPorSala.remove(codigoSala);
+            Servidor.clientesPorSala.remove(codigoSala);
 
             // Agregamos o actualizamos la sala en memoria
             gestorSalas.agregarOActualizarSala(sala);
@@ -781,6 +787,7 @@ public class ManejadorDeUsuarios extends Thread {
         String ranking = obtenerRankingFormateado(codigoSala);
         Servidor.enviarASala(codigoSala, "RANKING_FINAL|" + ranking);
         Servidor.enviarASala(codigoSala, "FINALIZAR_JUEGO");
+        resultadosPorSala.remove(codigoSala);
         System.out.println("Juego finalizado en sala " + codigoSala + ". Ranking: " + ranking);
     }
 
