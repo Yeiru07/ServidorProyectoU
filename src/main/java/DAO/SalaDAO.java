@@ -8,6 +8,7 @@ import MySQL.ConexionBaseDeDatos;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -241,6 +242,83 @@ public class SalaDAO {
             e.printStackTrace();
         }
         return preguntas;
+    }
+
+    public boolean actualizarPregunta(int idPregunta, String enunciado, String respuesta1, String respuesta2,
+            String respuesta3, String respuesta4, int respuestaCorrecta) {
+        String sql = "UPDATE preguntas SET enunciado = ?, respuesta1 = ?, respuesta2 = ?, "
+                + "respuesta3 = ?, respuesta4 = ?, respuestaCorrecta = ? WHERE idpreguntas = ?";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, enunciado);
+            ps.setString(2, respuesta1);
+            ps.setString(3, respuesta2);
+            ps.setString(4, respuesta3);
+            ps.setString(5, respuesta4);
+            ps.setInt(6, respuestaCorrecta);
+            ps.setInt(7, idPregunta);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Error al actualizar pregunta: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean eliminarPregunta(int idPregunta) {
+        String sql = "DELETE FROM preguntas WHERE idpreguntas = ?";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idPregunta);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Error al eliminar pregunta: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public int crearPartida(int codigoSala) {
+        String sql = "INSERT INTO partidas (fk_codigoSala) VALUES (?)";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, String.valueOf(codigoSala));
+            if (ps.executeUpdate() == 0) {
+                return 0;
+            }
+
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error al crear partida: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public boolean guardarRanking(int idPartida, int idUsuario, int posicion, int puntaje) {
+        String sqlCompleto = "INSERT INTO ranking (fk_idUsuarios, fk_idPartida, posicion, puntaje) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sqlCompleto)) {
+            ps.setInt(1, idUsuario);
+            ps.setInt(2, idPartida);
+            ps.setInt(3, posicion);
+            ps.setInt(4, puntaje);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Ranking extendido no disponible, usando formato basico: " + e.getMessage());
+        }
+
+        String sql = "INSERT INTO ranking (fk_idUsuarios, fk_idPartida) VALUES (?, ?)";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idUsuario);
+            ps.setInt(2, idPartida);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Error al guardar ranking: " + e.getMessage());
+            return false;
+        }
     }
 
     /**

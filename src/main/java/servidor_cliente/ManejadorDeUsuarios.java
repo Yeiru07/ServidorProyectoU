@@ -33,7 +33,7 @@ import java.util.Set;
  */
 public class ManejadorDeUsuarios extends Thread {
 
-    private static final Map<Integer, Map<String, ResultadoJugador>> resultadosPorSala = new HashMap<>();
+    private static final Map<Integer, Map<String, ResultadoJugador>> resultadosPorSala = Collections.synchronizedMap(new HashMap<>());
 
     // Socket para la comunicacion con el cliente
     private Socket socketCliente;
@@ -138,6 +138,12 @@ public class ManejadorDeUsuarios extends Thread {
                     break;
                 case "Pregunta":
                     manejarPregunta(partes);
+                    break;
+                case "ACTUALIZAR_PREGUNTA":
+                    manejarActualizarPregunta(partes);
+                    break;
+                case "ELIMINAR_PREGUNTA":
+                    manejarEliminarPregunta(partes);
                     break;
                 case "Sala":
                     manejarSala(partes);
@@ -311,6 +317,11 @@ public class ManejadorDeUsuarios extends Thread {
             nombrePropietario = partes[4];
         }
 
+        if (cantidadJugadores < GestorSala.MIN_JUGADORES || cantidadJugadores > GestorSala.MAX_JUGADORES) {
+            escritor.println("ERROR|La sala debe permitir entre 3 y 10 jugadores");
+            return;
+        }
+
         boolean guardado = salaDAO.guardarSala(
                 codigoSala, nombreSala, cantidadJugadores, nombrePropietario
         );
@@ -432,6 +443,14 @@ public class ManejadorDeUsuarios extends Thread {
         }
 
         int codigoSala = Integer.parseInt(partes[1]);
+        Sala sala = gestorSalas.buscarSala(codigoSala);
+        int jugadoresConectados = sala != null && sala.getArrayDeUsuarios() != null
+                ? sala.getArrayDeUsuarios().size() : 0;
+
+        if (jugadoresConectados < GestorSala.MIN_JUGADORES) {
+            escritor.println("ERROR|Se necesitan al menos 3 jugadores para iniciar");
+            return;
+        }
 
         prepararResultados(codigoSala);
 
@@ -441,6 +460,7 @@ public class ManejadorDeUsuarios extends Thread {
         if (preguntasFormateadas != null) {
             // Enviamos las preguntas SOLO a los clientes de esta sala
             Servidor.enviarASala(codigoSala, preguntasFormateadas);
+            gestorSalas.iniciarJuego(codigoSala);
         }
     }
 
@@ -462,6 +482,14 @@ public class ManejadorDeUsuarios extends Thread {
         }
 
         int codigoSala = Integer.parseInt(partes[1]);
+        Sala sala = gestorSalas.buscarSala(codigoSala);
+        int jugadoresConectados = sala != null && sala.getArrayDeUsuarios() != null
+                ? sala.getArrayDeUsuarios().size() : 0;
+
+        if (jugadoresConectados < GestorSala.MIN_JUGADORES) {
+            escritor.println("ERROR|Se necesitan al menos 3 jugadores para iniciar");
+            return;
+        }
 
         prepararResultados(codigoSala);
 
@@ -507,21 +535,21 @@ public class ManejadorDeUsuarios extends Thread {
             }
         }
 
+        // Intentamos agregar al jugador a la sala
+        boolean agregado = gestorSalas.agregarJugadorASala(codigoSala, nombreJugador);
+
+        if (!agregado) {
+            escritor.println("ERROR|Sala llena o jugador ya conectado");
+            return;
+        }
+
         // Guardamos el estado del cliente (sala y nombre)
         this.codigoSalaActual = codigoSala;
         this.nombreUsuario = nombreJugador;
 
         // Registramos al cliente en la sala para recibir mensajes
         registrarClienteEnSala(codigoSala);
-
-        // Intentamos agregar al jugador a la sala
-        boolean agregado = gestorSalas.agregarJugadorASala(codigoSala, nombreJugador);
-
-        if (agregado) {
-            System.out.println("Jugador " + nombreJugador + " agregado a sala " + codigoSala);
-        } else {
-            System.out.println("Jugador " + nombreJugador + " ya existe en sala " + codigoSala);
-        }
+        System.out.println("Jugador " + nombreJugador + " agregado a sala " + codigoSala);
 
         // Enviamos la lista actualizada de jugadores a TODOS en la sala
         // Esto incluye al presentador y a los demas jugadores
@@ -785,6 +813,7 @@ public class ManejadorDeUsuarios extends Thread {
 
         int codigoSala = Integer.parseInt(partes[1]);
         String ranking = obtenerRankingFormateado(codigoSala);
+        persistirResultadosFinales(codigoSala);
         Servidor.enviarASala(codigoSala, "RANKING_FINAL|" + ranking);
         Servidor.enviarASala(codigoSala, "FINALIZAR_JUEGO");
         resultadosPorSala.remove(codigoSala);
@@ -883,6 +912,71 @@ public class ManejadorDeUsuarios extends Thread {
         } catch (Exception e) {
             return valorDefecto;
         }
+    }
+
+    private void manejarActualizarPregunta(String[] partes) {
+        if (partes.length < 8) {
+            escritor.println("ERROR|Formato: ACTUALIZAR_PREGUNTA|id|enunciado|r1|r2|r3|r4|correcta");
+            return;
+        }
+
+        int idPregunta = parseEntero(partes[1], 0);
+        int correcta = parseEntero(partes[7], 0);
+        boolean actualizada = salaDAO.actualizarPregunta(
+                idPregunta,
+                partes[2],
+                partes[3],
+                partes[4],
+                partes[5],
+                partes[6],
+                correcta
+        );
+
+        escritor.println(actualizada ? "GUARDADO_OK" : "ERROR|No se pudo actualizar la pregunta");
+    }
+
+    private void manejarEliminarPregunta(String[] partes) {
+        if (partes.length < 2) {
+            escritor.println("ERROR|Formato: ELIMINAR_PREGUNTA|id");
+            return;
+        }
+
+        int idPregunta = parseEntero(partes[1], 0);
+        boolean eliminada = salaDAO.eliminarPregunta(idPregunta);
+        escritor.println(eliminada ? "GUARDADO_OK" : "ERROR|No se pudo eliminar la pregunta");
+    }
+
+    private void persistirResultadosFinales(int codigoSala) {
+        Map<String, ResultadoJugador> resultadosSala = resultadosPorSala.get(codigoSala);
+        if (resultadosSala == null || resultadosSala.isEmpty()) {
+            return;
+        }
+
+        int idPartida = salaDAO.crearPartida(codigoSala);
+        if (idPartida <= 0) {
+            return;
+        }
+
+        ArrayList<ResultadoJugador> ranking = ordenarRanking(resultadosSala);
+        for (int i = 0; i < ranking.size(); i++) {
+            ResultadoJugador resultado = ranking.get(i);
+            Usuario usuario = usuarioDAO.buscarUsuarioPorNombre(resultado.nombre);
+            if (usuario == null || usuario.getIdUsuario() <= 0) {
+                continue;
+            }
+
+            salaDAO.guardarRanking(idPartida, usuario.getIdUsuario(), i + 1, resultado.puntos);
+            usuarioDAO.actualizarPuntaje(resultado.nombre, resultado.puntos);
+        }
+    }
+
+    private ArrayList<ResultadoJugador> ordenarRanking(Map<String, ResultadoJugador> resultadosSala) {
+        ArrayList<ResultadoJugador> ranking = new ArrayList<>(resultadosSala.values());
+        Collections.sort(ranking, Comparator
+                .comparingInt((ResultadoJugador r) -> r.correctas).reversed()
+                .thenComparing(Comparator.comparingInt((ResultadoJugador r) -> r.puntos).reversed())
+                .thenComparing(r -> r.nombre.toLowerCase()));
+        return ranking;
     }
 
     private static class ResultadoJugador {

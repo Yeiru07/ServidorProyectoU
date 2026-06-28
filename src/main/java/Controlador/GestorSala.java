@@ -19,6 +19,9 @@ import servidor_cliente.Servidor;
  */
 public class GestorSala {
 
+    public static final int MIN_JUGADORES = 3;
+    public static final int MAX_JUGADORES = 10;
+
     private SalaDAO salaDao;
 
     public GestorSala() {
@@ -105,6 +108,12 @@ public class GestorSala {
 
         // Verificamos si el jugador ya está en la sala
         ArrayList<Usuario> jugadores = sala.getArrayDeUsuarios();
+        int capacidad = Math.min(MAX_JUGADORES, Math.max(MIN_JUGADORES, sala.getCantidadJugadores()));
+        if (jugadores.size() >= capacidad) {
+            System.out.println("Sala " + codigoSala + " llena. Capacidad: " + capacidad);
+            return false;
+        }
+
         for (int i = 0; i < jugadores.size(); i++) {
             Usuario u = jugadores.get(i);
             if (u.getNombreUsuario().equalsIgnoreCase(nombreJugador)) {

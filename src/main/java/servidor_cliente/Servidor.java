@@ -5,9 +5,9 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Iterator;
 
 /**
  * Clase principal del servidor del juego Kahoot.
@@ -30,12 +30,12 @@ public class Servidor {
 
     // Lista global de todos los clientes conectados (sin importar la sala)
     // Cada elemento es un PrintWriter que permite enviar mensajes a un cliente
-    public static ArrayList<PrintWriter> clientes = new ArrayList<>();
+    public static java.util.List<PrintWriter> clientes = Collections.synchronizedList(new ArrayList<>());
 
     // Mapa que agrupa clientes por sala
     // Clave: codigo de la sala (Integer)
     // Valor: lista de PrintWriters de los clientes en esa sala
-    public static Map<Integer, ArrayList<PrintWriter>> clientesPorSala = new HashMap<>();
+    public static Map<Integer, ArrayList<PrintWriter>> clientesPorSala = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * Envia un mensaje a TODOS los clientes conectados al servidor.
@@ -49,9 +49,11 @@ public class Servidor {
         System.out.println("ENVIANDO A TODOS (" + clientes.size() + " clientes): " + mensaje);
 
         // Recorremos la lista global de clientes
-        for (int i = 0; i < clientes.size(); i++) {
-            PrintWriter cliente = clientes.get(i);
-            cliente.println(mensaje);  // Enviamos el mensaje por el socket
+        synchronized (clientes) {
+            for (int i = 0; i < clientes.size(); i++) {
+                PrintWriter cliente = clientes.get(i);
+                cliente.println(mensaje);  // Enviamos el mensaje por el socket
+            }
         }
     }
 
@@ -72,9 +74,11 @@ public class Servidor {
             System.out.println("ENVIANDO A SALA " + codigoSala + " (" + clientesSala.size() + " clientes): " + mensaje);
 
             // Recorremos solo los clientes de esta sala
-            for (int i = 0; i < clientesSala.size(); i++) {
-                PrintWriter cliente = clientesSala.get(i);
-                cliente.println(mensaje);
+            synchronized (clientesSala) {
+                for (int i = 0; i < clientesSala.size(); i++) {
+                    PrintWriter cliente = clientesSala.get(i);
+                    cliente.println(mensaje);
+                }
             }
         } else {
             System.out.println("No hay clientes en la sala " + codigoSala);
@@ -97,7 +101,9 @@ public class Servidor {
 
         if (clientesSala != null) {
             // Removemos al cliente de la lista
-            clientesSala.remove(cliente);
+            synchronized (clientesSala) {
+                clientesSala.remove(cliente);
+            }
             System.out.println("Cliente removido de sala " + codigoSala + ". Quedan: " + clientesSala.size());
 
             // Si la sala se quedo sin clientes, la eliminamos del mapa
@@ -119,10 +125,12 @@ public class Servidor {
 
         // Obtenemos todas las entradas del mapa (codigoSala -> lista de clientes)
         // Usamos entrySet() para iterar sobre el mapa
-        for (Map.Entry<Integer, ArrayList<PrintWriter>> entrada : clientesPorSala.entrySet()) {
-            int codigoSala = entrada.getKey();
-            int cantidadClientes = entrada.getValue().size();
-            System.out.println("Sala " + codigoSala + ": " + cantidadClientes + " clientes");
+        synchronized (clientesPorSala) {
+            for (Map.Entry<Integer, ArrayList<PrintWriter>> entrada : clientesPorSala.entrySet()) {
+                int codigoSala = entrada.getKey();
+                int cantidadClientes = entrada.getValue().size();
+                System.out.println("Sala " + codigoSala + ": " + cantidadClientes + " clientes");
+            }
         }
 
         System.out.println("Total salas en juego: " + juego.getArrayDeSalas().size());

@@ -5,11 +5,14 @@ import java.sql.SQLException;
 public class ConexionBaseDeDatos {
 
 
-private static final String URL = "jdbc:mysql://proyecto-u-mysql-vpnaprueba121-b9f7.d.aivencloud.com:25848/batallas_preguntas";//con esto le digo que base usar
+private static final String URL = System.getProperty(
+        "db.url",
+        "jdbc:mysql://proyecto-u-mysql-vpnaprueba121-b9f7.d.aivencloud.com:25848/batallas_preguntas"
+);//con esto le digo que base usar
 
-    private static final String USUARIO = "avnadmin";
+    private static final String USUARIO = System.getProperty("db.user", "avnadmin");
 
-    private static final String PASSWORD = "AVNS_0gUHrNaURYyhMDxJYwF";
+    private static final String PASSWORD = System.getProperty("db.password", "AVNS_0gUHrNaURYyhMDxJYwF");
 
     public static Connection conectar() {
 
